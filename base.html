@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Role-Based Manager</title>
+    <style>
+        :root { --primary: #4f46e5; --bg: #f8fafc; --text: #334155; --sidebar: #1e293b; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: var(--sidebar); color: white; padding: 20px; display: flex; flex-direction: column; }
+        .brand { font-size: 1.5rem; font-weight: bold; margin-bottom: 40px; letter-spacing: 1px; }
+        .nav-link { padding: 12px; color: #cbd5e1; text-decoration: none; display: block; border-radius: 8px; margin-bottom: 5px; }
+        .nav-link:hover, .nav-link.active { background: var(--primary); color: white; }
+        .user-box { margin-top: auto; padding-top: 20px; border-top: 1px solid #334155; }
+        .content { flex: 1; padding: 30px; overflow-y: auto; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .btn { padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; font-weight: 600; }
+        .input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 15px; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .stat-val { font-size: 2.5rem; font-weight: bold; color: var(--primary); }
+        .task-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .col { background: #e2e8f0; padding: 15px; border-radius: 8px; min-height: 300px; }
+        .task-card { background: white; padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #ccc; }
+        .t-todo { border-left-color: #94a3b8; }
+        .t-inprogress { border-left-color: #f59e0b; }
+        .t-done { border-left-color: #10b981; }
+    </style>
+</head>
+<body>
+    {% if session.user_id %}
+    <aside class="sidebar">
+        <div class="brand">TaskFlow</div>
+        <nav>
+            <a href="/dashboard" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a>
+            <a href="/projects" class="nav-link {% if request.endpoint in ['projects', 'project_detail'] %}active{% endif %}">Projects</a>
+            {% if session.role == 'admin' %}
+            <a href="/team" class="nav-link {% if request.endpoint == 'team' %}active{% endif %}">Team Management</a>
+            {% endif %}
+        </nav>
+        <div class="user-box">
+            <p>{{ session.name }} <span style="font-size:0.8rem; color:#94a3b8">({{ session.role }})</span></p>
+            <a href="/logout" style="color: #ef4444; text-decoration: none; font-size: 0.9rem;">Logout</a>
+        </div>
+    </aside>
+    {% endif %}
+    <main class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div style="padding: 10px; background: #fee2e2; color: #991b1b; border-radius: 6px; margin-bottom: 10px;">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <a href="/project/{{ project.id }}" style="text-decoration: none; color: var(--primary);">← Back to {{ project.title }}</a>
+    <div class="card" style="margin-top: 20px;">
+        <h2>Edit Task</h2>
+        <form method="POST">
+            <label style="font-weight: bold; margin-bottom: 5px; display: block;">Task Title *</label>
+            <input type="text" name="title" class="input" value="{{ task.title }}" required>
+            
+            <label style="font-weight: bold; margin-bottom: 5px; display: block;">Description</label>
+            <textarea name="description" class="input" placeholder="Task description" style="height: 80px; resize: vertical;">{{ task.description or '' }}</textarea>
+            
+            <label style="font-weight: bold; margin-bottom: 5px; display: block;">Assign To</label>
+            <select name="assignee" class="input">
+                <option value="">Unassigned</option>
+                {% for u in users %}
+                <option value="{{ u.id }}" {% if task.assignee_id == u.id %}selected{% endif %}>{{ u.name }}</option>
+                {% endfor %}
+            </select>
+            
+            <label style="font-weight: bold; margin-bottom: 5px; display: block;">Deadline</label>
+            <input type="date" name="deadline" class="input" value="{% if task.deadline %}{{ task.deadline }}{% endif %}">
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="btn">Update Task</button>
+                <a href="/project/{{ project.id }}" class="btn" style="background: #94a3b8; text-align: center;">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

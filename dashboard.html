@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="margin-bottom: 20px;">Dashboard Overview</h2>
+<div class="stat-grid">
+    <div class="card">
+        <h3>Total Projects</h3>
+        <div class="stat-val">{{ total_projects }}</div>
+    </div>
+    <div class="card">
+        <h3>Total Tasks</h3>
+        <div class="stat-val">{{ total_tasks }}</div>
+    </div>
+    <div class="card">
+        <h3>Pending</h3>
+        <div class="stat-val" style="color: #f59e0b;">{{ pending_tasks }}</div>
+    </div>
+    <div class="card">
+        <h3>Completed</h3>
+        <div class="stat-val" style="color: #10b981;">{{ completed_tasks }}</div>
+    </div>
+    <div class="card">
+        <h3>Overdue</h3>
+        <div class="stat-val" style="color: #ef4444;">{{ overdue_tasks }}</div>
+    </div>
+</div>
+{% endblock %}
