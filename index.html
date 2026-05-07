@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow – Role-Based Team Task Manager</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #64748b;
+            --bg-light: #f3f4f6;
+            --white: #ffffff;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --border: #e2e8f0;
+            --sidebar-width: 260px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .w-full { width: 100%; }
+        .text-sm { font-size: 0.875rem; }
+        .font-bold { font-weight: 700; }
+        .text-center { text-align: center; }
+        
+        /* Buttons */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary { background: white; border: 1px solid var(--border); color: var(--text-dark); }
+        .btn-secondary:hover { background: var(--bg-light); }
+        .btn-danger { background: var(--danger); color: white; }
+
+        /* Inputs */
+        .input-group { margin-bottom: 1rem; text-align: left; }
+        .input-label { display: block; margin-bottom: 0.4rem; font-size: 0.9rem; color: var(--text-dark); }
+        .input-field {
+            width: 100%;
+            padding: 0.7rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .input-field:focus { outline: 2px solid var(--primary); border-color: transparent; }
+
+        /* --- Views --- */
+
+        /* Title Screen */
+        #view-title-screen {
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary) 0%, #818cf8 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            position: absolute;
+            top: 0; left: 0; width: 100%;
+            transition: opacity 0.5s ease;
+        }
+        .title-logo { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: -1px; }
+        .title-sub { font-size: 1.2rem; opacity: 0.9; margin-bottom: 2rem; }
+        
+        /* Auth Screen */
+        #view-auth {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--bg-light);
+        }
+        .auth-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        .auth-tabs { display: flex; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        .auth-tab {
+            flex: 1; padding: 0.8rem; text-align: center; cursor: pointer;
+            color: var(--text-light); border-bottom: 2px solid transparent;
+        }
+        .auth-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: bold; }
+
+        /* Main Layout */
+        #view-layout { display: flex; height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+        }
+        .sidebar-brand { font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-bottom: 2.5rem; }
+        .nav-item {
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            color: var(--text-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+        }
+        .nav-item:hover, .nav-item.active { background: var(--bg-light); color: var(--primary); }
+        .user-profile { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+        /* Content Area */
+        .main-content { flex: 1; padding: 2rem; overflow-y: auto; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .page-title { font-size: 1.8rem; font-weight: 700; }
+
+        /* Dashboard Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; }
+        .stat-card {
+            background: white; padding: 1.5rem; border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--border);
+        }
+        .stat-label { color: var(--text-light); font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--text-dark); }
+        .stat-sub { font-size: 0.8rem; margin-top: 0.5rem; }
+        .text-danger { color: var(--danger); }
+
+        /* Projects List */
+        .project-list { display: grid; gap: 1rem; }
+        .project-card {
+            background: white; padding: 1.5rem; border-radius: 8px;
+            border: 1px solid var(--border); cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center;
+            transition: transform 0.1s, border-color 0.2s;
+        }
+        .project-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        .badge-active { background: #dcfce7; color: #166534; }
+
+        /* Project Detail / Kanban */
+        .kanban-board { display: flex; gap: 1.5rem; overflow-x: auto; height: calc(100vh - 180px); }
+        .kanban-column {
+            flex: 1; min-width: 300px; background: var(--bg-light);
+            border-radius: 8px; padding: 1rem; display: flex; flex-direction: column;
+        }
+        .column-header { font-weight: 700; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .task-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.8rem; }
+        
+        .task-card {
+            background: white; padding: 1rem; border-radius: 6px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: grab;
+            border-left: 4px solid var(--border);
+        }
+        .task-card.status-todo { border-left-color: var(--secondary); }
+        .task-card.status-inprogress { border-left-color: var(--warning); }
+        .task-card.status-done { border-left-color: var(--success); }
+        .task-meta { display: flex; justify-content: space-between; margin-top: 0.8rem; font-size: 0.8rem; color: var(--text-light); }
+
+        /* Team Table */
+        .table-container { background: white; border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg-light); font-weight: 600; color: var(--text-light); font-size: 0.85rem; }
+        tr:last-child td { border-bottom: none; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 50;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .modal { background: white; padding: 2rem; border-radius: 10px; width: 90%; max-width: 500px; }
+
+        /* Toast Notification */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
+        .toast {
+            padding: 1rem 1.5rem; background: var(--text-dark); color: white;
+            border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease-out; font-size: 0.9rem;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- 1. Title Screen -->
+    <div id="view-title-screen">
+        <div class="title-logo">TaskFlow</div>
+        <div class="title-sub">Role-Based Team Task Manager</div>
+        <button class="btn btn-secondary" onclick="App.showAuth()">Get Started</button>
+    </div>
+
+    <!-- 2. Authentication Screen -->
+    <div id="view-auth" class="hidden">
+        <div class="auth-card">
+            <div class="auth-tabs">
+                <div class="auth-tab active" onclick="Auth.switchTab('login')">Login</div>
+                <div class="auth-tab" onclick="Auth.switchTab('signup')">Sign Up</div>
+            </div>
+            
+            <div id="form-login">
+                <div class="input-group">
+                    <label class="input-label">Username</label>
+                    <input type="text" id="login-user" class="input-field" placeholder="e.g. admin">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Password</label>
+                    <input type="password" id="login-pass" class="input-field" placeholder="e.g. admin123">
+                </div>
+                <button class="btn btn-primary w-full" onclick="Auth.login()">Login</button>
+                <p style="margin-top: 1rem; font-size: 0.8rem; color: #666; text-align: center;">
+                    Demo Admin: <b>admin</b> / <b>admin123</b>
+                </p>
+            </div>
+
+            <div id="form-signup" class="hidden">
+                <div class="input-group">
+                    <label class="input-label">Full Name</label>
+                    <input type="text" id="signup-name" class="input-field" placeholder="John Doe">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Username</label>
+                    <input type="text" id="signup-user" class="input-field" placeholder="johndoe">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Password</label>
+                    <input type="password" id="signup-pass" class="input-field">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Role</label>
+                    <select id="signup-role" class="input-field">
+                        <option value="member">Team Member</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary w-full" onclick="Auth.signup()">Create Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Main Layout (Dashboard, Projects, Team) -->
+    <div id="view-layout" class="hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">TaskFlow</div>
+            <nav>
+                <div class="nav-item active" onclick="Router.navigate('dashboard')">
+                    <span>📊</span> Dashboard
+                </div>
+                <div class="nav-item" onclick="Router.navigate('projects')">
+                    <span>🚀</span> Projects
+                </div>
+                <div class="nav-item" onclick="Router.navigate('team')">
+                    <span>👥</span> Team Management
+                </div>
+            </nav>
+            <div class="user-profile">
+                <div class="font-bold" id="nav-username">User</div>
+                <div class="text-sm text-light" id="nav-role">Role</div>
+                <button class="btn btn-secondary w-full text-sm" style="margin-top:0.5rem" onclick="Auth.logout()">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <main class="main-content">
+            
+            <!-- Dashboard View -->
+            <section id="content-dashboard">
+                <div class="page-header">
+                    <h2 class="page-title">Dashboard Overview</h2>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Projects</div>
+                        <div class="stat-value" id="stat-projects">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Tasks</div>
+                        <div class="stat-value" id="stat-tasks">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Completion Rate</div>
+                        <div class="stat-value" id="stat-rate">0%</div>
+                        <div class="stat-sub">Tasks marked as Done</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Overdue Tasks</div>
+                        <div class="stat-value text-danger" id="stat-overdue">0</div>
+                        <div class="stat-sub text-danger">Requires attention</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Projects List View -->
+            <section id="content-projects" class="hidden">
+                <div class="page-header">
+                    <h2 class="page-title">Projects</h2>
+                    <button class="btn btn-primary" onclick="ProjectManager.openCreateModal()">+ Create Project</button>
+                </div>
+                <div id="project-list-container" class="project-list">
+                    <!-- Projects injected here -->
+                </div>
+            </section>
+
+            <!-- Project Detail View (Tasks) -->
+            <section id="content-project-detail" class="hidden">
+                <div class="page-header">
+                    <div>
+                        <button class="btn btn-secondary text-sm" onclick="Router.navigate('projects')" style="margin-bottom: 0.5rem;">← Back</button>
+                        <h2 class="page-title" id="detail-project-name">Project Name</h2>
+                    </div>
+                    <button class="btn btn-primary" onclick="TaskManager.openCreateModal()">+ Add Task</button>
+                </div>
+                <div class="kanban-board">
+                    <!-- To Do -->
+                    <div class="kanban-column">
+                        <div class="column-header">To Do <span class="badge" style="background:#e2e8f0" id="count-todo">0</span></div>
+                        <div class="task-list" id="col-todo"></div>
+                    </div>
+                    <!-- In Progress -->
+                    <div class="kanban-column">
+                        <div class="column-header">In Progress <span class="badge" style="background:#e2e8f0" id="count-inprogress">0</span></div>
+                        <div class="task-list" id="col-inprogress"></div>
+                    </div>
+                    <!-- Done -->
+                    <div class="kanban-column">
+                        <div class="column-header">Done <span class="badge" style="background:#e2e8f0" id="count-done">0</span></div>
+                        <div class="task-list" id="col-done"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Team View -->
+            <section id="content-team" class="hidden">
+                <div class="page-header">
+                    <h2 class="page-title">Team Management</h2>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Assigned Tasks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="team-table-body">
+                            <!-- Users injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-container" class="hidden modal-overlay">
+        <!-- Dynamic Content -->
+    </div>
+
+    <script>
+        /**
+         * TaskFlow - Frontend Simulation
+         * Simulates DB using LocalStorage
+         */
+
+        const Utils = {
+            id: () => Math.random().toString(36).substr(2, 9),
+            showToast: (msg, type = 'info') => {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.innerText = msg;
+                if(type === 'error') toast.style.backgroundColor = 'var(--danger)';
+                if(type === 'success') toast.style.backgroundColor = 'var(--success)';
+                container.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            },
+            formatDate: (dateStr) => {
+                if(!dateStr) return 'No Date';
+                return new Date(dateStr).toLocaleDateString();
+            }
+        };
+
+        // --- Data Layer (Simulating Backend) ---
+        const DB = {
+            init: () => {
+                if (!localStorage.getItem('tf_users')) {
+                    // Seed data
+                    const admin = { id: 'u1', name: 'System Admin', username: 'admin', password: 'admin123', role: 'admin' };
+                    const user1 = { id: 'u2', name: 'Alice Dev', username: 'alice', password: '123', role: 'member' };
+                    localStorage.setItem('tf_users', JSON.stringify([admin, user1]));
+                    localStorage.setItem('tf_projects', JSON.stringify([]));
+                    localStorage.setItem('tf_tasks', JSON.stringify([]));
+                }
+            },
+            get: (key) => JSON.parse(localStorage.getItem(key) || '[]'),
+            set: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
+            findUser: (username, password) => {
+                const users = DB.get('tf_users');
+                return users.find(u => u.username === username && u.password === password);
+            },
+            addUser: (user) => {
+                const users = DB.get('tf_users');
+                if (users.find(u => u.username === user.username)) throw new Error('Username taken');
+                users.push(user);
+                DB.set('tf_users', users);
+            }
+        };
+
+        // --- Application State ---
+        const State = {
+            currentUser: null,
+            currentProjectId: null
+        };
+
+        // --- Auth Controller ---
+        const Auth = {
+            switchTab: (tab) => {
+                const loginForm = document.getElementById('form-login');
+                const signupForm = document.getElementById('form-signup');
+                const tabs = document.querySelectorAll('.auth-tab');
+                
+                if (tab === 'login') {
+                    loginForm.classList.remove('hidden');
+                    signupForm.classList.add('hidden');
+                    tabs[0].classList.add('active');
+                    tabs[1].classList.remove('active');
+                } else {
+                    loginForm.classList.add('hidden');
+                    signupForm.classList.remove('hidden');
+                    tabs[0].classList.remove('active');
+                    tabs[1].classList.add('active');
+                }
+            },
+            login: () => {
+                const u = document.getElementById('login-user').value;
+                const p = document.getElementById('login-pass').value;
+                try {
+                    const user = DB.findUser(u, p);
+                    if (!user) throw new Error('Invalid credentials');
+                    State.currentUser = user;
+                    Utils.showToast(`Welcome back, ${user.name}`, 'success');
+                    App.enterApp();
+                } catch (e) {
+                    Utils.showToast(e.message, 'error');
+                }
+            },
+            signup: () => {
+                const name = document.getElementById('signup-name').value;
+                const user = document.getElementById('signup-user').value;
+                const pass = document.getElementById('signup-pass').value;
+                const role = document.getElementById('signup-role').value;
+
+                if(!name || !user || !pass) return Utils.showToast('All fields required', 'error');
+
+                try {
+                    DB.addUser({ id: Utils.id(), name, username: user, password: pass, role });
+                    Utils.showToast('Account created! Please login.', 'success');
+                    Auth.switchTab('login');
+                } catch (e) {
+                    Utils.showToast(e.message, 'error');
+                }
+            },
+            logout: () => {
+                State.currentUser = null;
+                document.getElementById('view-layout').classList.add('hidden');
+                document.getElementById('view-auth').classList.remove('hidden');
+                // Reset fields
+                document.getElementById('login-pass').value = '';
+            }
+        };
+
+        // --- Dashboard Controller ---
+        const Dashboard = {
+            render: () => {
+                const projects = DB.get('tf_projects');
+                const tasks = DB.get('tf_tasks');
+                const userRole = State.currentUser.role;
+
+                // Filter tasks based on role (Admin sees all, Member sees assigned)
+                const visibleTasks = userRole === 'admin' 
+                    ? tasks 
+                    : tasks.filter(t => t.assigneeId === State.currentUser.id);
+
+                const total = visibleTasks.length;
+                const done = visibleTasks.filter(t => t.status === 'done').length;
+                const rate = total === 0 ? 0 : Math.round((done / total) * 100);
+                
+                // Overdue logic
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const overdue = visibleTasks.filter(t => {
+                    if (!t.dueDate || t.status === 'done') return false;
+                    return new Date(t.dueDate) < today;
+                }).length;
+
+                document.getElementById('stat-projects').innerText = userRole === 'admin' ? projects.length : 'View Only';
+                document.getElementById('stat-tasks').innerText = total;
+                document.getElementById('stat-rate').innerText = `${rate}%`;
+                document.getElementById('stat-overdue').innerText = overdue;
+            }
+        };
+
+        // --- Project Controller ---
+        const ProjectManager = {
+            renderList: () => {
+                const projects = DB.get('tf_projects');
+                const container = document.getElementById('project-list-container');
+                container.innerHTML = '';
+
+                if (projects.length === 0) {
+                    container.innerHTML = '<div class="text-center text-light" style="padding:2rem">No projects found. Create one!</div>';
+                    return;
+                }
+
+                projects.forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = 'project-card';
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-bold" style="font-size:1.1rem">${p.name}</div>
+                            <div class="text-sm text-light" style="margin-top:4px">${p.description}</div>
+                        </div>
+                        <span class="badge badge-active">Active</span>
+                    `;
+                    div.onclick = () => ProjectManager.openProject(p.id);
+                    container.appendChild(div);
+                });
+            },
+            openCreateModal: () => {
+                const modal = document.getElementById('modal-container');
+                modal.classList.remove('hidden');
+                modal.innerHTML = `
+                    <div class="modal">
+                        <h3 class="font-bold" style="margin-bottom:1rem">Create New Project</h3>
+                        <div class="input-group">
+                            <label class="input-label">Project Name</label>
+                            <input type="text" id="new-p-name" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Description</label>
+                            <input type="text" id="new-p-desc" class="input-field">
+                        </div>
+                        <div class="flex justify-between">
+                            <button class="btn btn-secondary" onclick="document.getElementById('modal-container').classList.add('hidden')">Cancel</button>
+                            <button class="btn btn-primary" onclick="ProjectManager.saveProject()">Save Project</button>
+                        </div>
+                    </div>
+                `;
+            },
+            saveProject: () => {
+                const name = document.getElementById('new-p-name').value;
+                const desc = document.getElementById('new-p-desc').value;
+                if(!name) return Utils.showToast('Project name required', 'error');
+
+                const projects = DB.get('tf_projects');
+                projects.push({ id: Utils.id(), name, description: desc, createdAt: new Date() });
+                DB.set('tf_projects', projects);
+                
+                document.getElementById('modal-container').classList.add('hidden');
+                Utils.showToast('Project created successfully', 'success');
+                ProjectManager.renderList();
+            },
+            openProject: (id) => {
+                State.currentProjectId = id;
+                Router.navigate('project-detail');
+            }
+        };
+
+        // --- Task Controller ---
+        const TaskManager = {
+            currentTasks: [],
+            render: () => {
+                const tasks = DB.get('tf_tasks').filter(t => t.projectId === State.currentProjectId);
+                TaskManager.currentTasks = tasks;
+                
+                // Filter by role
+                const userRole = State.currentUser.role;
+                const visibleTasks = userRole === 'admin' 
+                    ? tasks 
+                    : tasks.filter(t => t.assigneeId === State.currentUser.id);
+
+                const cols = {
+                    todo: document.getElementById('col-todo'),
+                    inprogress: document.getElementById('col-inprogress'),
+                    done: document.getElementById('col-done')
+                };
+                
+                // Clear cols
+                Object.values(cols).forEach(c => c.innerHTML = '');
+                
+                const counts = { todo: 0, inprogress: 0, done: 0 };
+                const users = DB.get('tf_users');
+
+                visibleTasks.forEach(task => {
+                    counts[task.status]++;
+                    const assignee = users.find(u => u.id === task.assigneeId);
+                    const card = document.createElement('div');
+                    card.className = `task-card status-${task.status}`;
+                    card.innerHTML = `
+                        <div class="font-bold">${task.title}</div>
+                        <div class="task-meta">
+                            <span>👤 ${assignee ? assignee.name : 'Unassigned'}</span>
+                            <span>📅 ${Utils.formatDate(task.dueDate)}</span>
+                        </div>
+                    `;
+                    
+                    // Allow status change
+                    if (userRole === 'admin') {
+                        card.onclick = () => TaskManager.cycleStatus(task.id);
+                    }
+
+                    cols[task.status].appendChild(card);
+                });
+
+                document.getElementById('count-todo').innerText = counts.todo;
+                document.getElementById('count-inprogress').innerText = counts.inprogress;
+                document.getElementById('count-done').innerText = counts.done;
+            },
+            cycleStatus: (taskId) => {
+                const tasks = DB.get('tf_tasks');
+                const taskIndex = tasks.findIndex(t => t.id === taskId);
+                if (taskIndex === -1) return;
+
+                const current = tasks[taskIndex].status;
+                let next = 'todo';
+                if (current === 'todo') next = 'inprogress';
+                else if (current === 'inprogress') next = 'done';
+
+                tasks[taskIndex].status = next;
+                DB.set('tf_tasks', tasks);
+                TaskManager.render();
+                Dashboard.render(); // Update dashboard stats
+            },
+            openCreateModal: () => {
+                const users = DB.get('tf_users');
+                const modal = document.getElementById('modal-container');
+                modal.classList.remove('hidden');
+                
+                let options = users.map(u => `<option value="${u.id}">${u.name} (${u.role})</option>`).join('');
+
+                modal.innerHTML = `
+                    <div class="modal">
+                        <h3 class="font-bold" style="margin-bottom:1rem">Add New Task</h3>
+                        <div class="input-group">
+                            <label class="input-label">Task Title</label>
+                            <input type="text" id="new-t-title" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Assign To</label>
+                            <select id="new-t-assign" class="input-field">${options}</select>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Due Date</label>
+                            <input type="date" id="new-t-date" class="input-field">
+                        </div>
+                        <div class="flex justify-between">
+                            <button class="btn btn-secondary" onclick="document.getElementById('modal-container').classList.add('hidden')">Cancel</button>
+                            <button class="btn btn-primary" onclick="TaskManager.saveTask()">Add Task</button>
+                        </div>
+                    </div>
+                `;
+            },
+            saveTask: () => {
+                const title = document.getElementById('new-t-title').value;
+                const assignee = document.getElementById('new-t-assign').value;
+                const date = document.getElementById('new-t-date').value;
+
+                if(!title) return Utils.showToast('Title required', 'error');
+
+                const tasks = DB.get('tf_tasks');
+                tasks.push({
+                    id: Utils.id(),
+                    projectId: State.currentProjectId,
+                    title,
+                    assigneeId: assignee,
+                    dueDate: date,
+                    status: 'todo'
+                });
+                DB.set('tf_tasks', tasks);
+                document.getElementById('modal-container').classList.add('hidden');
+                Utils.showToast('Task added', 'success');
+                TaskManager.render();
+                Dashboard.render();
+            }
+        };
+
+        // --- Team Controller ---
+        const TeamManager = {
+            render: () => {
+                const users = DB.get('tf_users');
+                const tasks = DB.get('tf_tasks');
+                const tbody = document.getElementById('team-table-body');
+                tbody.innerHTML = '';
+
+                users.forEach(u => {
+                    const taskCount = tasks.filter(t => t.assigneeId === u.id).length;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${u.name}</strong></td>
+                        <td>${u.username}</td>
+                        <td><span class="badge badge-active">${u.role}</span></td>
+                        <td>${taskCount}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        };
+
+        // --- Router & UI Manager ---
+        const Router = {
+            views: ['dashboard', 'projects', 'project-detail', 'team'],
+            navigate: (viewId) => {
+                // Update Sidebar
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                // Simple heuristic to highlight menu
+                if(viewId === 'dashboard') document.querySelectorAll('.nav-item')[0].classList.add('active');
+                if(viewId === 'projects' || viewId === 'project-detail') document.querySelectorAll('.nav-item')[1].classList.add('active');
+                if(viewId === 'team') document.querySelectorAll('.nav-item')[2].classList.add('active');
+
+                // Hide all content
+                Router.views.forEach(v => {
+                    document.getElementById(`content-${v}`).classList.add('hidden');
+                });
+                
+                // Show specific
+                document.getElementById(`content-${viewId}`).classList.remove('hidden');
+
+                // Specific Render logic
+                if (viewId === 'dashboard') Dashboard.render();
+                if (viewId === 'projects') ProjectManager.renderList();
+                if (viewId === 'project-detail') {
+                    const projects = DB.get('tf_projects');
+                    const p = projects.find(x => x.id === State.currentProjectId);
+                    if(p) document.getElementById('detail-project-name').innerText = p.name;
+                    TaskManager.render();
+                }
+                if (viewId === 'team') TeamManager.render();
+            }
+        };
+
+        const App = {
+            init: () => {
+                DB.init();
+                // Check if already logged in? For demo safety, always start at title screen
+            },
+            showAuth: () => {
+                document.getElementById('view-title-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('view-title-screen').classList.add('hidden');
+                    document.getElementById('view-auth').classList.remove('hidden');
+                }, 500);
+            },
+            enterApp: () => {
+                document.getElementById('view-auth').classList.add('hidden');
+                document.getElementById('view-layout').classList.remove('hidden');
+                
+                // Set User Info in Sidebar
+                document.getElementById('nav-username').innerText = State.currentUser.name;
+                document.getElementById('nav-role').innerText = State.currentUser.role.toUpperCase();
+
+                Router.navigate('dashboard');
+            }
+        };
+
+        // Start App
+        App.init();
+
+    </script>
+</body>
+</html>
